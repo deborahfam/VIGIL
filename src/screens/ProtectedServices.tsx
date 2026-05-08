@@ -1,15 +1,27 @@
 import { useState } from "react";
 import {
   Bitcoin,
+  Bot,
+  Cloud,
+  Code,
   Globe,
+  LayoutGrid,
   MessageCircle,
   Plus,
   Send,
   Shield,
   Trash2,
+  X,
 } from "lucide-react";
-import type { ProtectedService, RiskLevel, ServiceKind, Behavior } from "../types";
+import type {
+  Behavior,
+  ProtectedService,
+  RiskLevel,
+  ServiceKind,
+} from "../types";
 import { newServiceTemplate } from "../store";
+import { CATALOG, isCatalogItemAdded } from "../catalog";
+import { CatalogModal } from "../components/CatalogModal";
 
 interface Props {
   services: ProtectedService[];
@@ -18,30 +30,79 @@ interface Props {
   onRemove: (id: string) => void;
 }
 
-function pickIcon(svc: ProtectedService) {
+function pickIcon(svc: { kind: ServiceKind; value: string }) {
   const v = svc.value.toLowerCase();
   if (svc.kind === "domain") {
-    if (v.includes("binance") || v.includes("coin")) return { Icon: Bitcoin, tone: "warn" as const };
+    if (
+      v.includes("binance") ||
+      v.includes("coinbase") ||
+      v.includes("kraken") ||
+      v.includes("coin")
+    ) {
+      return { Icon: Bitcoin, tone: "warn" as const };
+    }
+    if (
+      v.includes("openai") ||
+      v.includes("anthropic") ||
+      v.includes("claude") ||
+      v.includes("gemini") ||
+      v.includes("perplexity")
+    ) {
+      return { Icon: Bot, tone: "accent" as const };
+    }
     return { Icon: Globe, tone: "accent" as const };
   }
+  if (
+    v.includes("chatgpt") ||
+    v.includes("claude") ||
+    v.includes("cursor") ||
+    v.includes("perplexity") ||
+    v.includes("lm studio") ||
+    v.includes("ollama") ||
+    v.includes("warp")
+  ) {
+    return { Icon: Bot, tone: "accent" as const };
+  }
+  if (v === "code" || v.includes("intellij") || v === "zed") {
+    return { Icon: Code, tone: "accent" as const };
+  }
   if (v.includes("telegram")) return { Icon: Send, tone: "accent" as const };
-  if (v.includes("whatsapp") || v.includes("signal") || v.includes("message")) {
+  if (
+    v.includes("whatsapp") ||
+    v.includes("signal") ||
+    v.includes("discord") ||
+    v.includes("slack") ||
+    v.includes("message")
+  ) {
     return { Icon: MessageCircle, tone: "ok" as const };
+  }
+  if (v.includes("dropbox") || v.includes("drive") || v.includes("onedrive")) {
+    return { Icon: Cloud, tone: "accent" as const };
   }
   return { Icon: Shield, tone: "accent" as const };
 }
 
-export function ProtectedServices({ services, onAdd, onUpdate, onRemove }: Props) {
+export function ProtectedServices({
+  services,
+  onAdd,
+  onUpdate,
+  onRemove,
+}: Props) {
   const [draft, setDraft] = useState(newServiceTemplate());
+  const [customOpen, setCustomOpen] = useState(false);
+  const [catalogOpen, setCatalogOpen] = useState(false);
 
   function submit(e: React.FormEvent) {
     e.preventDefault();
     if (!draft.value.trim()) return;
     onAdd({ ...draft, value: draft.value.trim() });
     setDraft(newServiceTemplate());
+    setCustomOpen(false);
   }
 
-  const triggering = 0;
+  const addedCount = CATALOG.filter((item) =>
+    isCatalogItemAdded(item, services),
+  ).length;
 
   return (
     <div className="screen">
@@ -49,82 +110,130 @@ export function ProtectedServices({ services, onAdd, onUpdate, onRemove }: Props
         <div className="screen__title">
           <h1>Protected services</h1>
           <p>
-            {services.length} services watched — {triggering} currently triggering
-            warnings
+            {services.length === 0
+              ? "Nothing watched yet — open the catalog to start"
+              : `${services.length} watched · ${addedCount} from catalog`}
           </p>
         </div>
-        <button type="submit" form="add-service-form" className="btn btn--primary">
-          <Plus size={14} strokeWidth={2.4} />
-          Add service
-        </button>
+        <div className="screen__head-actions">
+          <button
+            type="button"
+            className="btn btn--ghost"
+            onClick={() => setCustomOpen((v) => !v)}
+            aria-expanded={customOpen}
+          >
+            {customOpen ? (
+              <>
+                <X size={14} strokeWidth={2.4} />
+                Cancel
+              </>
+            ) : (
+              <>
+                <Plus size={14} strokeWidth={2.4} />
+                Add custom
+              </>
+            )}
+          </button>
+          <button
+            type="button"
+            className="btn btn--primary"
+            onClick={() => setCatalogOpen(true)}
+          >
+            <LayoutGrid size={14} strokeWidth={2.4} />
+            Add from catalog
+          </button>
+        </div>
       </header>
 
-      <section className="card form-card">
-        <div className="eyebrow">NEW SERVICE</div>
-        <form id="add-service-form" className="form-row" onSubmit={submit}>
-          <div className="field field--narrow">
-            <label className="field__label">Kind</label>
-            <select
-              className="select"
-              value={draft.kind}
-              onChange={(e) =>
-                setDraft({ ...draft, kind: e.target.value as ServiceKind })
-              }
-            >
-              <option value="app">App</option>
-              <option value="domain">Domain</option>
-            </select>
-          </div>
-          <div className="field field--grow">
-            <label className="field__label">Process or domain</label>
-            <input
-              className="input input--mono"
-              placeholder={
-                draft.kind === "app"
-                  ? "e.g. WhatsApp"
-                  : "e.g. openai.com"
-              }
-              value={draft.value}
-              onChange={(e) => setDraft({ ...draft, value: e.target.value })}
-            />
-          </div>
-          <div className="field field--narrow">
-            <label className="field__label">Risk</label>
-            <select
-              className="select"
-              value={draft.risk}
-              onChange={(e) =>
-                setDraft({ ...draft, risk: e.target.value as RiskLevel })
-              }
-            >
-              <option value="high">High</option>
-              <option value="medium">Medium</option>
-              <option value="low">Low</option>
-            </select>
-          </div>
-          <div className="field field--narrow">
-            <label className="field__label">Behavior</label>
-            <select
-              className="select"
-              value={draft.behavior}
-              onChange={(e) =>
-                setDraft({ ...draft, behavior: e.target.value as Behavior })
-              }
-            >
-              <option value="warn">Warn</option>
-              <option value="block">Block</option>
-            </select>
-          </div>
-        </form>
-      </section>
+      {customOpen && (
+        <section className="card form-card">
+          <div className="eyebrow">CUSTOM SERVICE</div>
+          <form className="form-row" onSubmit={submit}>
+            <div className="field field--narrow">
+              <label className="field__label">Kind</label>
+              <select
+                className="select"
+                value={draft.kind}
+                onChange={(e) =>
+                  setDraft({ ...draft, kind: e.target.value as ServiceKind })
+                }
+              >
+                <option value="app">App</option>
+                <option value="domain">Domain</option>
+              </select>
+            </div>
+            <div className="field field--grow">
+              <label className="field__label">Process or domain</label>
+              <input
+                className="input input--mono"
+                placeholder={
+                  draft.kind === "app" ? "e.g. WhatsApp" : "e.g. openai.com"
+                }
+                value={draft.value}
+                onChange={(e) => setDraft({ ...draft, value: e.target.value })}
+                autoFocus
+              />
+            </div>
+            <div className="field field--narrow">
+              <label className="field__label">Risk</label>
+              <select
+                className="select"
+                value={draft.risk}
+                onChange={(e) =>
+                  setDraft({ ...draft, risk: e.target.value as RiskLevel })
+                }
+              >
+                <option value="high">High</option>
+                <option value="medium">Medium</option>
+                <option value="low">Low</option>
+              </select>
+            </div>
+            <div className="field field--narrow">
+              <label className="field__label">Behavior</label>
+              <select
+                className="select"
+                value={draft.behavior}
+                onChange={(e) =>
+                  setDraft({ ...draft, behavior: e.target.value as Behavior })
+                }
+              >
+                <option value="warn">Warn</option>
+                <option value="block">Block</option>
+              </select>
+            </div>
+            <button type="submit" className="btn btn--primary">
+              <Plus size={14} strokeWidth={2.4} />
+              Add
+            </button>
+          </form>
+        </section>
+      )}
 
-      <div className="eyebrow">WATCHED SERVICES</div>
+      <div className="watched-head">
+        <div className="eyebrow">WATCHED SERVICES</div>
+        {services.length > 0 && (
+          <span className="muted">
+            VIGIL warns when these run while VPN is off
+          </span>
+        )}
+      </div>
 
       {services.length === 0 ? (
-        <p className="empty">
-          No protected services yet. Add an app process name or a domain that
-          should only be used while the VPN is on.
-        </p>
+        <button
+          type="button"
+          className="empty empty--clickable"
+          onClick={() => setCatalogOpen(true)}
+        >
+          <LayoutGrid size={20} strokeWidth={1.8} />
+          <div>
+            <strong>No protected services yet</strong>
+            <p>
+              Pick from the catalog of {CATALOG.length} common apps — ChatGPT,
+              Claude, Cursor, Telegram and more.
+            </p>
+          </div>
+          <span className="empty__cta">Open catalog →</span>
+        </button>
       ) : (
         <ul className="svc-list">
           {services.map((svc) => {
@@ -146,7 +255,9 @@ export function ProtectedServices({ services, onAdd, onUpdate, onRemove }: Props
                       {svc.risk.toUpperCase()}
                     </span>
                   </div>
-                  <div className="svc-row__notes">{matchHint}</div>
+                  <div className="svc-row__notes">
+                    {svc.notes ?? matchHint}
+                  </div>
                 </div>
                 <div className="svc-row__actions">
                   <select
@@ -154,7 +265,9 @@ export function ProtectedServices({ services, onAdd, onUpdate, onRemove }: Props
                     style={{ width: 110 }}
                     value={svc.behavior}
                     onChange={(e) =>
-                      onUpdate(svc.id, { behavior: e.target.value as Behavior })
+                      onUpdate(svc.id, {
+                        behavior: e.target.value as Behavior,
+                      })
                     }
                   >
                     <option value="warn">Warn</option>
@@ -173,6 +286,13 @@ export function ProtectedServices({ services, onAdd, onUpdate, onRemove }: Props
           })}
         </ul>
       )}
+
+      <CatalogModal
+        open={catalogOpen}
+        services={services}
+        onAdd={onAdd}
+        onClose={() => setCatalogOpen(false)}
+      />
     </div>
   );
 }
