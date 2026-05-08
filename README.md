@@ -1,2 +1,7 @@
-# VIGIL
-VPN Identity Guard &amp; Internet Launch: A small desktop tray app that checks if VPN is active and warns the user when they open a protected app or website from a custom list.
+# Tauri + React + Typescript
+
+This template should help get you started developing with Tauri, React and Typescript in Vite.
+
+## Recommended IDE Setup
+
+- [VS Code](https://code.visualstudio.com/) + [Tauri](https://marketplace.visualstudio.com/items?itemName=tauri-apps.tauri-vscode) + [rust-analyzer](https://marketplace.visualstudio.com/items?itemName=rust-lang.rust-analyzer)
