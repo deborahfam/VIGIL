@@ -16,6 +16,7 @@ export interface Settings {
   trustedInterfaces: string[];
   pollIntervalSec: number;
   publicIpCheck: boolean;
+  remindersEnabled: boolean;
 }
 
 export interface VpnStatus {

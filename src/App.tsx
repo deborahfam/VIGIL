@@ -12,12 +12,19 @@ import {
   isVpnEffectivelyOn,
   listRunningApps,
 } from "./api";
+import { notify, REMINDER_DELAY_MS } from "./notify";
 import type { ActiveWarning, ProtectedService, RunningProcess, VpnStatus } from "./types";
 import "./App.css";
 
 interface LaunchEvent {
   name: string;
   pid: number;
+}
+
+interface PendingReminder {
+  serviceId: string;
+  serviceLabel: string;
+  promisedAt: number;
 }
 
 export type Screen = "dashboard" | "services" | "settings";
@@ -50,6 +57,7 @@ function App() {
   const [lastChecked, setLastChecked] = useState<Date | null>(null);
   const [warning, setWarning] = useState<ActiveWarning | null>(null);
   const [activity, setActivity] = useState<ActivityEntry[]>([]);
+  const [pending, setPending] = useState<PendingReminder[]>([]);
   const dismissedRef = useRef<Set<string>>(new Set());
   const prevEffectiveRef = useRef<boolean | null>(null);
   const prevIpRef = useRef<string | null>(null);
@@ -192,13 +200,68 @@ function App() {
     }
   }, [effectiveOn, matchedAppServices, warning, pushActivity]);
 
+  useEffect(() => {
+    if (!effectiveOn || pending.length === 0) return;
+    const labels = pending.map((p) => p.serviceLabel);
+    setPending([]);
+    pushActivity({
+      kind: "ok",
+      title: `VPN connected — pending reminder${labels.length === 1 ? "" : "s"} cleared`,
+    });
+    notify(
+      "VIGIL — VPN connected",
+      labels.length === 1
+        ? `Now protecting ${labels[0]}.`
+        : `Now protecting ${labels.length} services.`,
+    );
+  }, [effectiveOn, pending, pushActivity]);
+
+  useEffect(() => {
+    if (pending.length === 0) return;
+    const id = window.setInterval(() => {
+      const now = Date.now();
+      setPending((prev) => {
+        const remaining: PendingReminder[] = [];
+        for (const p of prev) {
+          if (now - p.promisedAt < REMINDER_DELAY_MS) {
+            remaining.push(p);
+            continue;
+          }
+          notify(
+            "VIGIL — VPN still off",
+            `${p.serviceLabel} is still running without VPN protection.`,
+          );
+          pushActivity({
+            kind: "warn",
+            title: `Reminder sent — ${p.serviceLabel} still without VPN`,
+          });
+        }
+        return remaining;
+      });
+    }, 5000);
+    return () => window.clearInterval(id);
+  }, [pending.length, pushActivity]);
+
   function dismissWarning() {
     if (warning) dismissedRef.current.add(warning.service.id);
     setWarning(null);
   }
 
   function openAnyway() {
-    if (warning) dismissedRef.current.add(warning.service.id);
+    if (warning) {
+      dismissedRef.current.add(warning.service.id);
+      const svc = warning.service;
+      if (state.settings.remindersEnabled) {
+        setPending((prev) => [
+          ...prev.filter((p) => p.serviceId !== svc.id),
+          {
+            serviceId: svc.id,
+            serviceLabel: svc.value,
+            promisedAt: Date.now(),
+          },
+        ]);
+      }
+    }
     setWarning(null);
   }
 

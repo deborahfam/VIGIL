@@ -52,6 +52,12 @@ export function SettingsScreen({ settings, vpn, onUpdate }: Props) {
           on={settings.publicIpCheck}
           onChange={(v) => onUpdate({ publicIpCheck: v })}
         />
+        <Toggle
+          name="Reminder notifications"
+          hint="If you 'Open anyway', send a system notification 2 min later if VPN is still off."
+          on={settings.remindersEnabled}
+          onChange={(v) => onUpdate({ remindersEnabled: v })}
+        />
         <div className="setting">
           <div className="setting__label">
             <span className="setting__name">Poll interval</span>

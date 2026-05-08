@@ -79,6 +79,7 @@ pub fn run() {
 
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_notification::init())
         .invoke_handler(tauri::generate_handler![vpn_status, list_running_apps])
         .setup(|app| {
             launch_observer::spawn(app.handle().clone());

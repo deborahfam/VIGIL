@@ -8,6 +8,7 @@ const DEFAULT_SETTINGS: Settings = {
   trustedInterfaces: [],
   pollIntervalSec: 5,
   publicIpCheck: true,
+  remindersEnabled: true,
 };
 
 const SEED_SERVICES: ProtectedService[] = [
