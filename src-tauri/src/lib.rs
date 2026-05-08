@@ -2,6 +2,8 @@ use serde::Serialize;
 use std::collections::BTreeSet;
 use sysinfo::System;
 
+mod launch_observer;
+
 #[derive(Serialize)]
 pub struct VpnStatus {
     connected: bool,
@@ -78,6 +80,10 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![vpn_status, list_running_apps])
+        .setup(|app| {
+            launch_observer::spawn(app.handle().clone());
+            Ok(())
+        })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

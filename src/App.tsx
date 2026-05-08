@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { listen } from "@tauri-apps/api/event";
 import { Sidebar } from "./components/Sidebar";
 import { WarningModal } from "./components/WarningModal";
 import { Dashboard } from "./screens/Dashboard";
@@ -13,6 +14,11 @@ import {
 } from "./api";
 import type { ActiveWarning, ProtectedService, RunningProcess, VpnStatus } from "./types";
 import "./App.css";
+
+interface LaunchEvent {
+  name: string;
+  pid: number;
+}
 
 export type Screen = "dashboard" | "services" | "settings";
 
@@ -47,11 +53,18 @@ function App() {
   const dismissedRef = useRef<Set<string>>(new Set());
   const prevEffectiveRef = useRef<boolean | null>(null);
   const prevIpRef = useRef<string | null>(null);
+  const servicesRef = useRef(state.services);
+  const effectiveOnRef = useRef(false);
+  const warningRef = useRef<ActiveWarning | null>(null);
+
+  servicesRef.current = state.services;
+  warningRef.current = warning;
 
   const effectiveOn = useMemo(
     () => isVpnEffectivelyOn(vpn, state.settings.trustedInterfaces),
     [vpn, state.settings.trustedInterfaces],
   );
+  effectiveOnRef.current = effectiveOn;
 
   const matchedAppServices = useMemo(
     () =>
@@ -98,6 +111,38 @@ function App() {
     const id = window.setInterval(refresh, state.settings.pollIntervalSec * 1000);
     return () => window.clearInterval(id);
   }, [refresh, state.settings.pollIntervalSec]);
+
+  useEffect(() => {
+    let unlisten: (() => void) | null = null;
+    listen<LaunchEvent>("app-launched", (event) => {
+      const proc = event.payload;
+      if (effectiveOnRef.current) return;
+
+      const procName = proc.name.toLowerCase();
+      const match = servicesRef.current.find(
+        (s) => s.kind === "app" && procName.includes(s.value.toLowerCase()),
+      );
+      if (!match) return;
+      if (dismissedRef.current.has(match.id)) return;
+      if (warningRef.current?.service.id === match.id) return;
+
+      setWarning({ service: match, detectedAt: Date.now() });
+      pushActivity({
+        kind: "warn",
+        title: `${match.value} just launched while VPN was off`,
+      });
+      setRunning((prev) =>
+        prev.some((p) => p.pid === proc.pid)
+          ? prev
+          : [...prev, { name: proc.name, pid: proc.pid }],
+      );
+    }).then((u) => {
+      unlisten = u;
+    });
+    return () => {
+      unlisten?.();
+    };
+  }, [pushActivity]);
 
   useEffect(() => {
     const prev = prevEffectiveRef.current;
