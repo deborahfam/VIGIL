@@ -1256,6 +1256,25 @@ button {
   border-top: 1px solid var(--border-subtle);
   background: var(--bg-elevated);
 }
+.catalog-modal__notice {
+  margin: 0 24px;
+  padding: 12px 14px;
+  background: var(--warn-soft);
+  border-left: 2px solid var(--warn);
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+.catalog-modal__notice strong {
+  display: block;
+  color: var(--warn);
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 2px;
+  font-family: var(--font-mono);
+}
 .kbd {
   display: inline-flex;
   align-items: center;

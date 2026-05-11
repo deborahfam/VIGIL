@@ -11,25 +11,20 @@ const DEFAULT_SETTINGS: Settings = {
   remindersEnabled: true,
 };
 
-const SEED_SERVICES: ProtectedService[] = [
-  { id: "seed-1", kind: "app", value: "Telegram", risk: "high", behavior: "warn" },
-  { id: "seed-2", kind: "domain", value: "binance.com", risk: "high", behavior: "warn" },
-];
-
 function loadState(): AppState {
   if (typeof window === "undefined") {
-    return { services: SEED_SERVICES, settings: DEFAULT_SETTINGS };
+    return { services: [], settings: DEFAULT_SETTINGS };
   }
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return { services: SEED_SERVICES, settings: DEFAULT_SETTINGS };
+    if (!raw) return { services: [], settings: DEFAULT_SETTINGS };
     const parsed = JSON.parse(raw) as Partial<AppState>;
     return {
-      services: parsed.services ?? SEED_SERVICES,
+      services: parsed.services ?? [],
       settings: { ...DEFAULT_SETTINGS, ...(parsed.settings ?? {}) },
     };
   } catch {
-    return { services: SEED_SERVICES, settings: DEFAULT_SETTINGS };
+    return { services: [], settings: DEFAULT_SETTINGS };
   }
 }
 

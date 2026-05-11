@@ -5,7 +5,10 @@ import type { ActivityEntry } from "../App";
 
 interface Props {
   vpn: VpnStatus | null;
+  vpnError: boolean;
   publicIp: string | null;
+  publicIpError: boolean;
+  publicIpEnabled: boolean;
   effectiveOn: boolean;
   services: ProtectedService[];
   runningApps: RunningProcess[];
@@ -31,7 +34,10 @@ const ACTIVITY_ICON = {
 
 export function Dashboard({
   vpn,
+  vpnError,
   publicIp,
+  publicIpError,
+  publicIpEnabled,
   effectiveOn,
   services,
   runningApps,
@@ -42,6 +48,21 @@ export function Dashboard({
   const activeIface = vpn?.vpn_interfaces[0] ?? "none";
   const triggering = matchedAppServices.length;
   const chipServices = services.slice(0, 3);
+
+  let publicIpDisplay: string;
+  let publicIpClass = "mono";
+  if (!publicIpEnabled) {
+    publicIpDisplay = "Disabled";
+    publicIpClass = "muted";
+  } else if (publicIpError) {
+    publicIpDisplay = "Unavailable";
+    publicIpClass = "warn-text";
+  } else if (publicIp) {
+    publicIpDisplay = publicIp;
+  } else {
+    publicIpDisplay = "—";
+    publicIpClass = "muted";
+  }
 
   return (
     <div className="screen">
@@ -69,18 +90,27 @@ export function Dashboard({
               aria-hidden
             />
             <span className="status-big__label">
-              {effectiveOn ? "Connected" : "Not connected"}
+              {vpnError
+                ? "Unknown"
+                : effectiveOn
+                  ? "Connected"
+                  : "Not connected"}
             </span>
           </div>
+          {vpnError && (
+            <p className="muted-block warn-text" style={{ margin: 0 }}>
+              Could not read network interfaces. Retrying every refresh.
+            </p>
+          )}
           <div className="card__sep" />
           <dl className="detail-rows">
             <div className="detail-row">
               <dt>Active interface</dt>
-              <dd className="mono">{activeIface}</dd>
+              <dd className="mono">{vpnError ? "—" : activeIface}</dd>
             </div>
             <div className="detail-row">
               <dt>Public IP</dt>
-              <dd className="mono">{publicIp ?? "—"}</dd>
+              <dd className={publicIpClass}>{publicIpDisplay}</dd>
             </div>
             <div className="detail-row">
               <dt>Last checked</dt>

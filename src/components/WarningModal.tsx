@@ -53,7 +53,7 @@ export function WarningModal({ warning, strictMode, onDismiss, onOpenAnyway }: P
         </dl>
         <div className="modal__actions">
           <button className="btn btn--ghost" onClick={onDismiss}>
-            Cancel
+            Dismiss
           </button>
           {!strictMode && service.behavior === "warn" && (
             <button className="btn btn--danger" onClick={onOpenAnyway}>
@@ -62,7 +62,7 @@ export function WarningModal({ warning, strictMode, onDismiss, onOpenAnyway }: P
           )}
           <button className="btn btn--primary" onClick={onDismiss}>
             <ShieldCheck size={14} strokeWidth={2.2} />
-            Connect VPN
+            I'll connect VPN
           </button>
         </div>
       </div>

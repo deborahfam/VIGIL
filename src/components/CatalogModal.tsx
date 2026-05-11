@@ -87,10 +87,7 @@ function pickIcon(kind: ServiceKind, value: string) {
 }
 
 function tileToneClass(item: CatalogItem): string {
-  if (item.kind === "domain") {
-    if (item.category === "crypto") return "catalog-tile--crypto";
-    return "catalog-tile--domain";
-  }
+  if (item.kind === "domain") return "catalog-tile--domain";
   if (item.category === "messaging" && item.key !== "telegram") {
     return "catalog-tile--messaging-secure";
   }
@@ -130,7 +127,6 @@ export function CatalogModal({ open, services, onAdd, onClose }: Props) {
       ai: [],
       dev: [],
       messaging: [],
-      crypto: [],
       cloud: [],
     };
     for (const item of filtered) out[item.category].push(item);
@@ -186,7 +182,7 @@ export function CatalogModal({ open, services, onAdd, onClose }: Props) {
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search apps and domains…"
+            placeholder="Search apps…"
           />
           {query && (
             <button
@@ -198,6 +194,12 @@ export function CatalogModal({ open, services, onAdd, onClose }: Props) {
             </button>
           )}
         </label>
+
+        <div className="catalog-modal__notice">
+          <strong>Apps only for now.</strong> Web URL protection (chat.openai.com,
+          binance.com, …) is in development and will ship as a separate browser
+          extension.
+        </div>
 
         <div className="catalog-modal__body">
           {filtered.length === 0 ? (

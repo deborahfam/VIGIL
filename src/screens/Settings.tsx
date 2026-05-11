@@ -60,9 +60,10 @@ export function SettingsScreen({ settings, vpn, onUpdate }: Props) {
         />
         <div className="setting">
           <div className="setting__label">
-            <span className="setting__name">Poll interval</span>
+            <span className="setting__name">VPN status refresh</span>
             <span className="setting__hint">
-              How often to refresh VPN and process state.
+              How often to refresh VPN status and public IP. App launches are
+              detected instantly regardless of this setting.
             </span>
           </div>
           <select

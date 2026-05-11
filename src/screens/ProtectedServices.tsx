@@ -148,6 +148,15 @@ export function ProtectedServices({
       {customOpen && (
         <section className="card form-card">
           <div className="eyebrow">CUSTOM SERVICE</div>
+          {draft.kind === "domain" && (
+            <p
+              className="muted-block"
+              style={{ margin: 0, color: "var(--warn)", fontSize: 12 }}
+            >
+              Heads up — domain protection is in development. VIGIL will save
+              your entry but won't act on it until the browser extension ships.
+            </p>
+          )}
           <form className="form-row" onSubmit={submit}>
             <div className="field field--narrow">
               <label className="field__label">Kind</label>
@@ -159,7 +168,7 @@ export function ProtectedServices({
                 }
               >
                 <option value="app">App</option>
-                <option value="domain">Domain</option>
+                <option value="domain">Domain (soon)</option>
               </select>
             </div>
             <div className="field field--grow">

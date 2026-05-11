@@ -52,8 +52,10 @@ function App() {
     useAppState();
   const [screen, setScreen] = useState<Screen>("dashboard");
   const [vpn, setVpn] = useState<VpnStatus | null>(null);
+  const [vpnError, setVpnError] = useState(false);
   const [running, setRunning] = useState<RunningProcess[]>([]);
   const [publicIp, setPublicIp] = useState<string | null>(null);
+  const [publicIpError, setPublicIpError] = useState(false);
   const [lastChecked, setLastChecked] = useState<Date | null>(null);
   const [warning, setWarning] = useState<ActiveWarning | null>(null);
   const [activity, setActivity] = useState<ActivityEntry[]>([]);
@@ -99,18 +101,28 @@ function App() {
   );
 
   const refresh = useCallback(async () => {
-    const [v, procs] = await Promise.all([
-      getVpnStatus().catch(() => null),
-      listRunningApps().catch(() => [] as RunningProcess[]),
+    const [vpnResult, procsResult] = await Promise.allSettled([
+      getVpnStatus(),
+      listRunningApps(),
     ]);
-    setVpn(v);
-    setRunning(procs);
+    if (vpnResult.status === "fulfilled") {
+      setVpn(vpnResult.value);
+      setVpnError(false);
+    } else {
+      setVpn(null);
+      setVpnError(true);
+    }
+    setRunning(
+      procsResult.status === "fulfilled" ? procsResult.value : [],
+    );
     setLastChecked(new Date());
     if (state.settings.publicIpCheck) {
       const ip = await getPublicIp();
       setPublicIp(ip);
+      setPublicIpError(ip === null);
     } else {
       setPublicIp(null);
+      setPublicIpError(false);
     }
   }, [state.settings.publicIpCheck]);
 
@@ -272,7 +284,10 @@ function App() {
         {screen === "dashboard" && (
           <Dashboard
             vpn={vpn}
+            vpnError={vpnError}
             publicIp={publicIp}
+            publicIpError={publicIpError}
+            publicIpEnabled={state.settings.publicIpCheck}
             effectiveOn={effectiveOn}
             services={state.services}
             runningApps={running}
