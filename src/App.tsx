@@ -69,6 +69,7 @@ function App() {
   const effectiveOnRef = useRef(false);
   const warningRef = useRef<ActiveWarning | null>(null);
   const recentlyKilledRef = useRef<Map<string, number>>(new Map());
+  const prevBehaviorRef = useRef<Map<string, string>>(new Map());
 
   servicesRef.current = state.services;
   warningRef.current = warning;
@@ -271,6 +272,28 @@ function App() {
       });
     }
   }, [effectiveOn, matchedAppServices, running, warning, pushActivity]);
+
+  useEffect(() => {
+    const ids = new Set(state.services.map((s) => s.id));
+    for (const svc of state.services) {
+      const prev = prevBehaviorRef.current.get(svc.id);
+      if (prev !== undefined && prev !== svc.behavior) {
+        dismissedRef.current.delete(svc.id);
+        for (const key of Array.from(recentlyKilledRef.current.keys())) {
+          if (key.startsWith(`${svc.id}:`)) {
+            recentlyKilledRef.current.delete(key);
+          }
+        }
+        if (warningRef.current?.service.id === svc.id) {
+          setWarning(null);
+        }
+      }
+      prevBehaviorRef.current.set(svc.id, svc.behavior);
+    }
+    for (const id of Array.from(prevBehaviorRef.current.keys())) {
+      if (!ids.has(id)) prevBehaviorRef.current.delete(id);
+    }
+  }, [state.services]);
 
   useEffect(() => {
     const win = getCurrentWindow();
