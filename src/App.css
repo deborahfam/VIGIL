@@ -835,6 +835,7 @@ button {
   height: 18px;
   background: var(--text-muted);
   transition: transform 0.18s, background 0.18s;
+  pointer-events: none;
 }
 .toggle--on {
   background: var(--accent);

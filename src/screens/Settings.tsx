@@ -209,7 +209,7 @@ function Toggle({
         <span className="setting__name">{name}</span>
         <span className="setting__hint">{hint}</span>
       </div>
-      <span className={`toggle ${on ? "toggle--on" : ""}`}>
+      <label className={`toggle ${on ? "toggle--on" : ""}`}>
         <input
           className="toggle__input"
           type="checkbox"
@@ -217,7 +217,7 @@ function Toggle({
           onChange={(e) => onChange(e.target.checked)}
           aria-label={name}
         />
-      </span>
+      </label>
     </div>
   );
 }
