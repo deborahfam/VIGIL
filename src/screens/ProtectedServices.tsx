@@ -10,6 +10,7 @@ import {
   Plus,
   Send,
   Shield,
+  Skull,
   Trash2,
   X,
 } from "lucide-react";
@@ -207,7 +208,7 @@ export function ProtectedServices({
                 }
               >
                 <option value="warn">Warn</option>
-                <option value="block">Block</option>
+                <option value="block">Kill</option>
               </select>
             </div>
             <button type="submit" className="btn btn--primary">
@@ -263,6 +264,15 @@ export function ProtectedServices({
                     <span className={`risk risk--${svc.risk}`}>
                       {svc.risk.toUpperCase()}
                     </span>
+                    {svc.behavior === "block" && (
+                      <span
+                        className="tag tag--kill"
+                        title="VIGIL will kill this process if it launches while VPN is off"
+                      >
+                        <Skull size={10} strokeWidth={2.4} />
+                        KILL
+                      </span>
+                    )}
                   </div>
                   <div className="svc-row__notes">
                     {svc.notes ?? matchHint}

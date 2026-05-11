@@ -29,6 +29,10 @@ notification you can't miss.
 - **Instant launch detection.** Watches processes across the whole OS at
   250 ms intervals and fires a warning within milliseconds of any protected
   app starting.
+- **Warn or kill, per app.** Each protected service has a behavior toggle:
+  *Warn* shows a modal you can dismiss; *Kill* terminates the process
+  immediately and sends a notification — for apps you can't afford to even
+  ping without a VPN (Cursor, ChatGPT, Claude, …).
 - **18-app catalog.** ChatGPT, Claude, Cursor, Perplexity, LM Studio, Ollama,
   Warp Terminal, VS Code, IntelliJ, Zed, Telegram, WhatsApp, Signal, Discord,
   Slack, Dropbox, Google Drive, OneDrive — one click to protect. Custom apps

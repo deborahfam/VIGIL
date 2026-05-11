@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { listen } from "@tauri-apps/api/event";
+import { getCurrentWindow, UserAttentionType } from "@tauri-apps/api/window";
 import { Sidebar } from "./components/Sidebar";
 import { WarningModal } from "./components/WarningModal";
 import { Dashboard } from "./screens/Dashboard";
@@ -10,6 +11,7 @@ import {
   getPublicIp,
   getVpnStatus,
   isVpnEffectivelyOn,
+  killProcess,
   listRunningApps,
 } from "./api";
 import { notify, REMINDER_DELAY_MS } from "./notify";
@@ -66,6 +68,7 @@ function App() {
   const servicesRef = useRef(state.services);
   const effectiveOnRef = useRef(false);
   const warningRef = useRef<ActiveWarning | null>(null);
+  const recentlyKilledRef = useRef<Map<string, number>>(new Map());
 
   servicesRef.current = state.services;
   warningRef.current = warning;
@@ -134,7 +137,7 @@ function App() {
 
   useEffect(() => {
     let unlisten: (() => void) | null = null;
-    listen<LaunchEvent>("app-launched", (event) => {
+    listen<LaunchEvent>("app-launched", async (event) => {
       const proc = event.payload;
       if (effectiveOnRef.current) return;
 
@@ -143,6 +146,29 @@ function App() {
         (s) => s.kind === "app" && procName.includes(s.value.toLowerCase()),
       );
       if (!match) return;
+
+      if (match.behavior === "block") {
+        try {
+          await killProcess(proc.pid);
+          pushActivity({
+            kind: "warn",
+            title: `${match.value} killed — VPN was off`,
+          });
+          notify(
+            `VIGIL stopped ${match.value}`,
+            "Connect VPN before reopening.",
+          );
+          setWarning({ service: match, detectedAt: Date.now() });
+        } catch (err) {
+          pushActivity({
+            kind: "warn",
+            title: `Couldn't stop ${match.value} (${String(err)})`,
+          });
+          setWarning({ service: match, detectedAt: Date.now() });
+        }
+        return;
+      }
+
       if (dismissedRef.current.has(match.id)) return;
       if (warningRef.current?.service.id === match.id) return;
 
@@ -197,11 +223,45 @@ function App() {
   useEffect(() => {
     if (effectiveOn) {
       dismissedRef.current.clear();
+      recentlyKilledRef.current.clear();
       if (warning) setWarning(null);
       return;
     }
+
+    const now = Date.now();
+    for (const svc of matchedAppServices) {
+      if (svc.behavior !== "block") continue;
+      const procs = running.filter((p) =>
+        p.name.toLowerCase().includes(svc.value.toLowerCase()),
+      );
+      if (procs.length === 0) continue;
+      let killedAny = false;
+      for (const proc of procs) {
+        const key = `${svc.id}:${proc.pid}`;
+        const last = recentlyKilledRef.current.get(key) ?? 0;
+        if (now - last < 10000) continue;
+        recentlyKilledRef.current.set(key, now);
+        killProcess(proc.pid)
+          .then(() => {
+            pushActivity({
+              kind: "warn",
+              title: `${svc.value} killed — VPN was off`,
+            });
+            notify(
+              `VIGIL stopped ${svc.value}`,
+              "Connect VPN before reopening.",
+            );
+          })
+          .catch(() => {});
+        killedAny = true;
+      }
+      if (killedAny && warningRef.current?.service.id !== svc.id) {
+        setWarning({ service: svc, detectedAt: Date.now() });
+      }
+    }
+
     const candidate = matchedAppServices.find(
-      (s) => !dismissedRef.current.has(s.id),
+      (s) => s.behavior !== "block" && !dismissedRef.current.has(s.id),
     );
     if (candidate && (!warning || warning.service.id !== candidate.id)) {
       setWarning({ service: candidate, detectedAt: Date.now() });
@@ -210,7 +270,20 @@ function App() {
         title: `${candidate.value} running while VPN was off`,
       });
     }
-  }, [effectiveOn, matchedAppServices, warning, pushActivity]);
+  }, [effectiveOn, matchedAppServices, running, warning, pushActivity]);
+
+  useEffect(() => {
+    const win = getCurrentWindow();
+    if (warning) {
+      win.show().catch(() => {});
+      win.unminimize().catch(() => {});
+      win.setAlwaysOnTop(true).catch(() => {});
+      win.setFocus().catch(() => {});
+      win.requestUserAttention(UserAttentionType.Critical).catch(() => {});
+    } else {
+      win.setAlwaysOnTop(false).catch(() => {});
+    }
+  }, [warning]);
 
   useEffect(() => {
     if (!effectiveOn || pending.length === 0) return;
@@ -255,7 +328,9 @@ function App() {
   }, [pending.length, pushActivity]);
 
   function dismissWarning() {
-    if (warning) dismissedRef.current.add(warning.service.id);
+    if (warning && warning.service.behavior === "warn") {
+      dismissedRef.current.add(warning.service.id);
+    }
     setWarning(null);
   }
 

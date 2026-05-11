@@ -1,6 +1,6 @@
 use serde::Serialize;
 use std::collections::BTreeSet;
-use sysinfo::System;
+use sysinfo::{Pid, System};
 
 mod launch_observer;
 
@@ -51,6 +51,23 @@ fn vpn_status() -> Result<VpnStatus, String> {
 }
 
 #[tauri::command]
+fn kill_process(pid: u32) -> Result<(), String> {
+    let target = Pid::from_u32(pid);
+    let mut sys = System::new();
+    sys.refresh_processes(sysinfo::ProcessesToUpdate::Some(&[target]), true);
+    match sys.process(target) {
+        Some(p) => {
+            if p.kill() {
+                Ok(())
+            } else {
+                Err("kill failed — permission denied or protected process".into())
+            }
+        }
+        None => Err("process not found (already exited?)".into()),
+    }
+}
+
+#[tauri::command]
 fn list_running_apps() -> Vec<RunningProcess> {
     let mut sys = System::new();
     sys.refresh_processes(sysinfo::ProcessesToUpdate::All, true);
@@ -80,7 +97,11 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_notification::init())
-        .invoke_handler(tauri::generate_handler![vpn_status, list_running_apps])
+        .invoke_handler(tauri::generate_handler![
+            vpn_status,
+            list_running_apps,
+            kill_process
+        ])
         .setup(|app| {
             launch_observer::spawn(app.handle().clone());
             Ok(())

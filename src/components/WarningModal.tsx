@@ -1,4 +1,4 @@
-import { ShieldAlert, ShieldCheck } from "lucide-react";
+import { ShieldAlert, ShieldCheck, Skull } from "lucide-react";
 import type { ActiveWarning } from "../types";
 
 interface Props {
@@ -18,18 +18,32 @@ function formatAgo(ts: number): string {
 export function WarningModal({ warning, strictMode, onDismiss, onOpenAnyway }: Props) {
   if (!warning) return null;
   const { service, detectedAt } = warning;
+  const isKilled = service.behavior === "block";
 
   return (
     <div className="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="warn-title">
-      <div className="modal">
+      <div className={`modal ${isKilled ? "modal--killed" : ""}`}>
         <div className="modal__icon" aria-hidden>
-          <ShieldAlert size={28} strokeWidth={2} />
+          {isKilled ? (
+            <Skull size={28} strokeWidth={2} />
+          ) : (
+            <ShieldAlert size={28} strokeWidth={2} />
+          )}
         </div>
         <div>
-          <h2 id="warn-title">VPN is off</h2>
+          <h2 id="warn-title">
+            {isKilled ? `VIGIL stopped ${service.value}` : "VPN is off"}
+          </h2>
           <p className="modal__lede">
-            You are about to use a protected service. This may expose your real
-            connection and put your account at risk.
+            {isKilled ? (
+              <>
+                <strong>{service.value}</strong> tried to run while your VPN
+                was off. VIGIL killed the process before any traffic could
+                leave your machine. Connect your VPN before reopening.
+              </>
+            ) : (
+              "You are about to use a protected service. This may expose your real connection and put your account at risk."
+            )}
           </p>
         </div>
         <dl className="modal__meta">
@@ -47,23 +61,32 @@ export function WarningModal({ warning, strictMode, onDismiss, onOpenAnyway }: P
             </dd>
           </div>
           <div className="modal__meta-row">
-            <dt>Detected</dt>
+            <dt>{isKilled ? "Killed" : "Detected"}</dt>
             <dd>{formatAgo(detectedAt)}</dd>
           </div>
         </dl>
         <div className="modal__actions">
-          <button className="btn btn--ghost" onClick={onDismiss}>
-            Dismiss
-          </button>
-          {!strictMode && service.behavior === "warn" && (
-            <button className="btn btn--danger" onClick={onOpenAnyway}>
-              Open anyway
+          {isKilled ? (
+            <button className="btn btn--primary" onClick={onDismiss}>
+              <ShieldCheck size={14} strokeWidth={2.2} />
+              Got it
             </button>
+          ) : (
+            <>
+              <button className="btn btn--ghost" onClick={onDismiss}>
+                Dismiss
+              </button>
+              {!strictMode && (
+                <button className="btn btn--danger" onClick={onOpenAnyway}>
+                  Open anyway
+                </button>
+              )}
+              <button className="btn btn--primary" onClick={onDismiss}>
+                <ShieldCheck size={14} strokeWidth={2.2} />
+                I'll connect VPN
+              </button>
+            </>
           )}
-          <button className="btn btn--primary" onClick={onDismiss}>
-            <ShieldCheck size={14} strokeWidth={2.2} />
-            I'll connect VPN
-          </button>
         </div>
       </div>
     </div>

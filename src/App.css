@@ -693,6 +693,16 @@ button {
   text-transform: lowercase;
   font-family: var(--font-mono);
 }
+.tag--kill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--danger-soft);
+  border-color: var(--danger-stroke);
+  color: var(--danger);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
 
 .risk {
   font-size: 10px;
@@ -1307,6 +1317,15 @@ button {
   color: var(--danger);
   display: grid;
   place-items: center;
+}
+.modal--killed .modal__icon {
+  background: #1A0608;
+  border-color: var(--danger);
+  color: var(--danger);
+  box-shadow: 0 0 0 4px var(--danger-glow);
+}
+.modal--killed::before {
+  height: 4px;
 }
 .modal h2 {
   margin: 0;

@@ -9,6 +9,10 @@ export async function listRunningApps(): Promise<RunningProcess[]> {
   return await invoke<RunningProcess[]>("list_running_apps");
 }
 
+export async function killProcess(pid: number): Promise<void> {
+  await invoke("kill_process", { pid });
+}
+
 export async function getPublicIp(): Promise<string | null> {
   try {
     const res = await fetch("https://api.ipify.org?format=json", {
